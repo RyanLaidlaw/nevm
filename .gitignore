@@ -1,1 +1,20 @@
 test_files/
+nimble.develop
+nimble.paths
+nimbledeps
+main
+
+# Compiler files
+test_files/cache/
+test_files/out/
+
+# Ignores development broadcast logs
+test_files/!/broadcast
+test_files//broadcast/*/31337/
+test_files//broadcast/**/dry-run/
+
+# Docs
+test_files/docs/
+
+# Dotenv file
+test_files/.env

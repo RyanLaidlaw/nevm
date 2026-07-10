@@ -77,7 +77,7 @@ proc popTwo(evm: var Evm): tuple[a: UInt256, b: UInt256] =
     let b = evm.stack.pop()
     return (a, b)
 
-proc keccak256(data: openArray[uint8]): array[32, uint8] =
+proc keccak256*(data: openArray[uint8]): array[32, uint8] =
     var ctx: keccak256
     ctx.init()
     ctx.update(data)
@@ -268,6 +268,8 @@ proc run*(evm: var Evm, storage: var Table[UInt256, UInt256], code: var Bytearra
                     evm.memory[dest_offset + i] = evm.calldata[offset + i]
                 else:
                     evm.memory[dest_offset + i] = 0
+        of 0x38:
+            evm.stack.add(code.len().u256)
         of 0x39:
             let dest_offset = evm.stack.pop().truncate(int)
             let offset = evm.stack.pop().truncate(int)
@@ -276,7 +278,7 @@ proc run*(evm: var Evm, storage: var Table[UInt256, UInt256], code: var Bytearra
             evm.ensureMemory(dest_offset + size)
 
             for i in 0 ..< size:
-                if offset + i < evm.code.len():
+                if offset + i < code.len():
                     evm.memory[dest_offset + i] = code[offset + i]
                 else:
                     evm.memory[dest_offset + i] = 0
@@ -294,7 +296,7 @@ proc run*(evm: var Evm, storage: var Table[UInt256, UInt256], code: var Bytearra
             let offset = evm.stack.pop().truncate(int)
 
             evm.ensureMemory(offset + 32)
-            
+
             var buffer = newSeq[uint8](32)
             for i in 0..31:
                 buffer[i] = evm.memory[offset + i]
@@ -317,7 +319,7 @@ proc run*(evm: var Evm, storage: var Table[UInt256, UInt256], code: var Bytearra
             evm.memory[offset] = value.truncate(uint8)
         of 0x54:
             let key = evm.stack.pop()
-            let value = storage[key]
+            let value = storage.getOrDefault(key, 0.u256)
             evm.stack.add(value)
         of 0x55:
             let (key, value) = evm.popTwo()
@@ -369,7 +371,7 @@ proc run*(evm: var Evm, storage: var Table[UInt256, UInt256], code: var Bytearra
             let value = evm.stack[evm.stack.len() - n]
             evm.stack.add(value)
         of 0x90..0x9f:
-            let n = int(opcode - 0x7f)
+            let n = int(opcode - 0x8f)
             let len: int = evm.stack.len()
 
             swap(evm.stack[len - 1], evm.stack[len - 1 - n])
@@ -378,7 +380,7 @@ proc run*(evm: var Evm, storage: var Table[UInt256, UInt256], code: var Bytearra
             let size = evm.stack.pop().truncate(int)
             let endOffset = offset + size
 
-            evm.ensureMemory(offset + size)
+            evm.ensureMemory(endOffset)
 
             let data = evm.memory[offset ..< endOffset]
             return ExitReason(kind: Return, returnBytes: data)
@@ -388,7 +390,6 @@ proc run*(evm: var Evm, storage: var Table[UInt256, UInt256], code: var Bytearra
             let endOffset = offset + size
 
             evm.ensureMemory(offset + size)
-
             let data = evm.memory[offset ..< endOffset]
             return ExitReason(kind: Revert, revertBytes: data)
         of 0xfe:
