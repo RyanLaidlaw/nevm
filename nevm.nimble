@@ -15,7 +15,7 @@ requires "clapfn"
 requires "stint"
 requires "nimcrypto"
 requires "noise"
-requires "foundry_compilers_nim"
+requires "foundry_compilers_nim >= 0.1.9"
 
 when withDir(thisDir(), system.fileExists("nimble.paths")):
   include "nimble.paths"
